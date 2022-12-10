@@ -92,9 +92,14 @@ namespace Unity.Robotics.UrdfImporter
         }
 
         // Creates the robot game object.
-        private static void ImportPipelineCreateObject(ImportPipelineData im)
+        private static void ImportPipelineCreateObject(ImportPipelineData im, GameObject gameObjectToUse = null)
         {
-            im.robotGameObject = new GameObject(im.robot.name);
+            if ( ! gameObjectToUse ) {
+                gameObjectToUse = new GameObject();
+            }
+
+            im.robotGameObject = gameObjectToUse;
+            im.robotGameObject.name = im.robot.name;
 
             importsettings = im.settings;
             im.settings.totalLinks = im.robot.links.Count;
@@ -202,15 +207,15 @@ namespace Unity.Robotics.UrdfImporter
         /// <param name="filename">URDF filename</param>
         /// <param name="settings">Import Settings</param>
         /// <returns> Robot game object</returns>
-        public static GameObject CreateRuntime(string filename, ImportSettings settings)
+        public static GameObject CreateRuntime(string filename, ImportSettings settings, GameObject gameObjectToUse = null)
         {
-            ImportPipelineData im = ImportPipelineInit(filename, settings, false, true);
+            ImportPipelineData im = ImportPipelineInit(filename, settings, false, false);
             if (im == null)
             {
                 return null;
             }
 
-            ImportPipelineCreateObject(im);
+            ImportPipelineCreateObject(im, gameObjectToUse);
 
             while (ProcessJointStack(im))
             {// process the stack until finished.
