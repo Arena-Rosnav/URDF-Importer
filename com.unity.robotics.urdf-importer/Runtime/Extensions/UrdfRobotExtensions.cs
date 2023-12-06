@@ -45,6 +45,8 @@ namespace Unity.Robotics.UrdfImporter
             urdfLink.IsBaseLink = true;
         }
 
+        
+
         #region Import
 
         // Note: The Create() function is now broken into multiple pipeline stages to facilitate having
@@ -88,6 +90,23 @@ namespace Unity.Robotics.UrdfImporter
                 }
                 return null;
             }
+            return im;
+        }
+
+        private static ImportPipelineData ImportPipelineInit(TextReader tr, string filename, ImportSettings settings, bool loadStatus, bool forceRuntimeMode)
+        {
+            ImportPipelineData im = new ImportPipelineData();
+            im.settings = settings;
+            im.loadStatus = loadStatus;
+            im.wasRuntimeMode = RuntimeUrdf.IsRuntimeMode();
+            im.forceRuntimeMode = forceRuntimeMode;
+
+            if (forceRuntimeMode)
+            {
+                RuntimeUrdf.SetRuntimeMode(true);
+            }
+
+            im.robot = new Robot(tr, filename);
             return im;
         }
 
@@ -205,6 +224,34 @@ namespace Unity.Robotics.UrdfImporter
         public static GameObject CreateRuntime(string filename, ImportSettings settings)
         {
             ImportPipelineData im = ImportPipelineInit(filename, settings, false, true);
+            if (im == null)
+            {
+                return null;
+            }
+
+            ImportPipelineCreateObject(im);
+
+            while (ProcessJointStack(im))
+            {// process the stack until finished.
+            }
+
+            ImportPipelinePostCreate(im);
+
+            return im.robotGameObject;
+        }
+
+        /// <summary>
+        /// Create a Robot gameobject from filename in runtime.
+        /// It is a synchronous (blocking) function and only returns after the gameobject has been created.
+        /// By reading through the TextReader, the urdf definition can be processed if it is already a string.
+        /// </summary>
+        /// <param name="tr">TextReader for the urdf definition</param>
+        /// <param name="filename">Desired URDF filename</param>
+        /// <param name="settings">Import Settings</param>
+        /// <returns> Robot game object</returns>
+        public static GameObject CreateRuntime(TextReader tr, string filename, ImportSettings settings)
+        {
+            ImportPipelineData im = ImportPipelineInit(tr, filename, settings, false, true);
             if (im == null)
             {
                 return null;
