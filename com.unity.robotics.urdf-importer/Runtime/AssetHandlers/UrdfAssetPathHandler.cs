@@ -21,6 +21,8 @@ using System.Reflection;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Codice.Client.BaseCommands.Triggers;
+using System.Xml.Linq;
+using Assimp.Configs;
 
 namespace Unity.Robotics.UrdfImporter
 {
@@ -30,18 +32,6 @@ namespace Unity.Robotics.UrdfImporter
         private static string packageRoot;
         private const string MaterialFolderName = "Materials";
 
-        private static string OsPathSeparator
-        {
-            get
-            {
-
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                {
-                    return ";";
-                }
-                return ":";
-            }
-        }
 
         public static IEnumerable<string> RosPackagePaths
         {
@@ -53,7 +43,7 @@ namespace Unity.Robotics.UrdfImporter
 
                 if (ros_paths != null)
                 {
-                    return ros_paths.Split(OsPathSeparator);
+                    return ros_paths.Split(Path.PathSeparator);
                 }
                 
                 // workaround for now if the workspace hasn't been sourced for the executable, e.g. launching from Unity Hub while testing
@@ -68,6 +58,52 @@ namespace Unity.Robotics.UrdfImporter
                 }
                 return paths;
             }
+        }
+
+        private static Dictionary<string,string> _Ros_Packages;
+
+        public static void CrawlForRosPackages (){
+            if(_Ros_Packages == null) _Ros_Packages = new Dictionary<string, string>();
+
+            foreach(var path in RosPackagePaths){
+                foreach(var packageManifestPath in Directory.EnumerateFiles(path,"package.xml", SearchOption.AllDirectories)){
+                    XDocument packageManifest = XDocument.Load(packageManifestPath);
+                    XNamespace ns = packageManifest.Root.GetDefaultNamespace();
+                    string packageManifestDir = Path.GetDirectoryName(packageManifestPath);
+                    XElement nameElement = packageManifest.Descendants("name").FirstOrDefault();
+                    if (nameElement == null)
+                    {
+                        UnityEngine.Debug.LogWarning($"Faulty package.xml found at: {packageManifestPath}");
+                        continue;
+                    }
+                    var packageName = nameElement.Value;
+
+                    if(_Ros_Packages.ContainsKey(packageName)){
+                        if(_Ros_Packages[packageName] == packageManifestDir){
+                            UnityEngine.Debug.Log($"Package {packageName} already in cache");
+                            continue;
+                        }
+                        else {
+                            UnityEngine.Debug.LogWarning($"Package {packageName} found again with different path({packageManifestDir}), overriding old path({_Ros_Packages[packageName]})");
+                        }
+                    }
+
+                    _Ros_Packages[packageName] = packageManifestDir;
+                }
+            }
+        }
+
+        public static string GetPackagePath(string packageName){
+            if(_Ros_Packages == null || !_Ros_Packages.ContainsKey(packageName)){
+                CrawlForRosPackages();
+            }
+
+            if(!_Ros_Packages.ContainsKey(packageName)){
+                UnityEngine.Debug.LogError("Couldn't find package: " + packageName +"\n searched in:" + String.Join("; ",RosPackagePaths));
+                return "";
+            }
+
+            return _Ros_Packages[packageName];
         }
 
         #region SetAssetRootFolder
@@ -151,10 +187,9 @@ namespace Unity.Robotics.UrdfImporter
 
                 //search through ROS package directories, if not found in unity repo
                 if(!IsValidAssetPath(path)){
-                    foreach(var packagePath in RosPackagePaths){
-                        if(IsValidAssetPath(packagePath+path))
-                            return packagePath+path;
-                    }
+                    string packageName = path[..path.IndexOf(Path.DirectorySeparatorChar)];
+                    string packagePath = GetPackagePath(packageName);
+                    return packagePath + path[packageName.Length..];
                 }
             }
             // loading assets from file:// type URI.

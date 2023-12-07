@@ -91,6 +91,7 @@ namespace Unity.Robotics.UrdfImporter
             if (meshFilePath.ToLower().EndsWith(".stl"))
             {
                 meshObject = StlAssetPostProcessor.CreateStlGameObjectRuntime(meshFilePath);
+                // Todo: Handle collada .dae MeshColliders
             }
             else
             {
