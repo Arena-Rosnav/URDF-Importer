@@ -118,8 +118,10 @@ namespace Unity.Robotics.UrdfImporter
             importsettings = im.settings;
             im.settings.totalLinks = im.robot.links.Count;
 
-            CreateTag();
-            SetTag(im.robotGameObject);
+            if(!RuntimeUrdf.IsRuntimeMode()){
+                CreateTag();
+                SetTag(im.robotGameObject);
+            }
 
             im.robotGameObject.AddComponent<UrdfRobot>();
 
