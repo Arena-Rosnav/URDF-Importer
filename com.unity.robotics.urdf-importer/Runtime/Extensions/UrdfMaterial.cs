@@ -28,6 +28,8 @@ namespace Unity.Robotics.UrdfImporter
 
         public static Dictionary<string, Link.Visual.Material> Materials =
             new Dictionary<string, Link.Visual.Material>();
+
+        public static Dictionary<string, Material> CreatedMaterials = new Dictionary<string, Material>();
         
         #region Import
         private static Material CreateMaterial(this Link.Visual.Material urdfMaterial)
@@ -38,12 +40,16 @@ namespace Unity.Robotics.UrdfImporter
             }
 
             var material = RuntimeUrdf.AssetDatabase_LoadAssetAtPath<Material>(UrdfAssetPathHandler.GetMaterialAssetPath(urdfMaterial.name));
+            if(material == null && RuntimeUrdf.IsRuntimeMode()){
+                material = CreatedMaterials.GetValueOrDefault(urdfMaterial.name);
+            }
             if (material != null)
             {   //material already exists
                 return material;
             }
 
             material = MaterialExtensions.CreateBasicMaterial();
+            material.name = urdfMaterial.name;
             if (urdfMaterial.color != null)
             {
                 MaterialExtensions.SetMaterialColor(material, CreateColor(urdfMaterial.color));
@@ -54,6 +60,9 @@ namespace Unity.Robotics.UrdfImporter
             }
 
             RuntimeUrdf.AssetDatabase_CreateAsset(material, UrdfAssetPathHandler.GetMaterialAssetPath(urdfMaterial.name));
+            if(RuntimeUrdf.IsRuntimeMode()){
+                CreatedMaterials.Add(urdfMaterial.name, material); 
+            }
             return material;
         }
 
@@ -73,7 +82,7 @@ namespace Unity.Robotics.UrdfImporter
             }
 
             material = MaterialExtensions.CreateBasicMaterial();
-            MaterialExtensions.SetMaterialColor(material, new Color(0.33f, 0.33f, 0.33f, 0.0f));
+            MaterialExtensions.SetMaterialColor(material, new Color(0.33f, 0.33f, 0.33f, 1.0f));
             
             // just keep it in memory while the app is running.
             defaultMaterial = material;
@@ -158,7 +167,11 @@ namespace Unity.Robotics.UrdfImporter
             var renderers = gameObject.GetComponentsInChildren<Renderer>();
             foreach (var renderer in renderers)
             {
-                renderer.sharedMaterial = material;
+                if(MaterialExtensions.GetRenderPipelineType() != MaterialExtensions.RenderPipelineType.Standard){
+                    renderer.material = material;
+                }else{
+                    renderer.sharedMaterial = material;
+                }
             }
         }
 
