@@ -47,14 +47,16 @@ namespace Unity.Robotics.UrdfImporter
                 }
                 
                 // workaround for now if the workspace hasn't been sourced for the executable, e.g. launching from Unity Hub while testing
-                // should probalby use regex that includes different directory seperators to stay OS agnostic
-                // also requires arena-unity to be in the arena_ws
                 // Todo: make fallback paths configurable
                 paths = new List<string> { "/opt/ros/noetic/share/" };
+
+                //check if in a catkin workspace, if yes add the src path for package traversal
                 string dirPath = System.IO.Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-                if (dirPath.Contains("src/arena-unity"))
+                if (dirPath.Contains("/src/"))
                 {
-                    return paths.Append(dirPath[..dirPath.IndexOf("arena-unity")]);
+                    var wsPath = dirPath[..dirPath.IndexOf("src/")];
+                    if(File.Exists(wsPath + ".catkin_workspace"))
+                        return paths.Append(wsPath+"src/");
                 }
                 return paths;
             }
