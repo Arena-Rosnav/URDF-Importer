@@ -62,6 +62,33 @@ namespace Unity.Robotics.UrdfImporter
             
         }
 
+        public Robot(TextReader tr, string filename)
+        {
+            
+            this.filename = filename;
+            
+            XDocument xdoc = XDocument.Load(tr);
+            XElement node = xdoc.Element("robot");
+
+            name = node.Attribute("name").Value;
+            materials = ReadMaterials(node);
+            links = ReadLinks(node);
+            joints = ReadJoints(node);
+            plugins = ReadPlugins(node);
+            ignoreCollisionPair = ReadDisableCollision(node);
+            
+
+            // build tree structure from link and joint lists:
+            foreach (Link link in links)
+                link.joints = joints.FindAll(v => v.parent == link.name);
+            foreach (Joint joint in joints)
+                joint.ChildLink = links.Find(v => v.name == joint.child);
+
+            // save root node only:
+            root = FindRootLink(links, joints);
+            
+        }
+
         public Robot(string filename, string name)
         {
             this.filename = filename;

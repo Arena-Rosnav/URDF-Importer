@@ -16,6 +16,7 @@ using UnityEngine;
 using System.Collections.Generic;
 using MeshProcess;
 using System.IO;
+using UnityMeshImporter;
 
 namespace Unity.Robotics.UrdfImporter
 {
@@ -91,6 +92,16 @@ namespace Unity.Robotics.UrdfImporter
             if (meshFilePath.ToLower().EndsWith(".stl"))
             {
                 meshObject = StlAssetPostProcessor.CreateStlGameObjectRuntime(meshFilePath);
+                // Todo: Handle collada .dae MeshColliders
+            }
+            else if (meshFilePath.ToLower().EndsWith(".dae"))
+            {
+                float globalScale = ColladaAssetPostProcessor.ReadGlobalScale(meshFilePath);
+                meshObject = MeshImporter.Load(meshFilePath, globalScale, globalScale, globalScale);
+                if (meshObject != null)
+                {
+                    ColladaAssetPostProcessor.ApplyColladaOrientation(meshObject, meshFilePath);
+                }
             }
             else
             {
