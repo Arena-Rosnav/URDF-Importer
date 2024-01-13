@@ -20,7 +20,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Linq;
 using System.Runtime.InteropServices;
-using Codice.Client.BaseCommands.Triggers;
+// using Codice.Client.BaseCommands.Triggers;
 using System.Xml.Linq;
 using Assimp.Configs;
 
