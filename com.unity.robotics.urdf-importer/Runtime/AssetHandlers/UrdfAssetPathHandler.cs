@@ -55,7 +55,7 @@ namespace Unity.Robotics.UrdfImporter
                 if (dirPath.Contains("/src/"))
                 {
                     var wsPath = dirPath[..dirPath.IndexOf("src/")];
-                    if(File.Exists(wsPath + ".catkin_workspace"))
+                    if(File.Exists(wsPath + ".catkin_workspace")  || Directory.Exists(wsPath + ".catkin_tools") || Directory.Exists(wsPath + "devel"))
                         return paths.Append(wsPath+"src/");
                 }
                 return paths;
